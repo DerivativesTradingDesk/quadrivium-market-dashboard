@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Market Command Center</title>
+  <style>
+    :root {
+      --bg: #05060a;
+      --bg-alt: #0b0d14;
+      --card: #111522;
+      --card-alt: #181d2b;
+      --accent: #2dd4bf;
+      --accent-soft: rgba(45,212,191,0.15);
+      --up: #22c55e;
+      --down: #ef4444;
+      --flat: #9ca3af;
+      --text: #e5e7eb;
+      --muted: #6b7280;
+      --border: #1f2933;
+      --heat-up: #14532d;
+      --heat-down: #7f1d1d;
+      --heat-flat: #111827;
+      --high-vol: #f97316;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
+      color: var(--text);
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(90deg, #020617, #020617 40%, #020617);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.9);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34,197,94,0.8);
+    }
+
+    .badge-dot.offline {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239,68,68,0.8);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 16px;
+      padding: 16px 24px 32px;
+    }
+
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px 12px 16px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .panel-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .panel-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Heatmap */
+    #heatmap {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .heat-tile {
+      border-radius: 8px;
+      padding: 6px 6px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      border: 1px solid rgba(15,23,42,0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s;
+    }
+
+    .heat-tile:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.7);
+      border-color: rgba(148,163,184,0.6);
+    }
+
+    .heat-tile .sym {
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    .heat-tile .pct {
+      font-size: 0.7rem;
+    }
+
+    .heat-up {
+      background: linear-gradient(135deg, #064e3b, #022c22);
+      color: #bbf7d0;
+    }
+
+    .heat-down {
+      background: linear-gradient(135deg, #7f1d1d, #450a0a);
+      color: #fecaca;
+    }
+
+    .heat-flat {
+      background: linear-gradient(135deg, #020617, #020617);
+      color: #e5e7eb;
+    }
+
+    /* Ticker grid */
+    #ticker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .ticker-card {
+      background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617);
+      border-radius: 10px;
+      padding: 8px 10px 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s;
+    }
+
+    .ticker-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.7);
+      border-color: rgba(148,163,184,0.7);
+    }
+
+    .ticker-card.up {
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.25);
+    }
+
+    .ticker-card.down {
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.25);
+    }
+
+    .ticker-card.flat {
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.2);
+    }
+
+    .ticker-card.stale {
+      opacity: 0.55;
+    }
+
+    .ticker-card.high-vol::after {
+      content: "HIGH VOL";
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(249,115,22,0.8);
+      color: #fed7aa;
+      background: rgba(30,64,175,0.1);
+      box-shadow: 0 0 12px rgba(249,115,22,0.7);
+    }
+
+    .ticker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .ticker-symbol {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .ticker-name {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .card-price {
+      font-size: 1.05rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-change {
+      font-size: 0.75rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-change.up { color: var(--up); }
+    .card-change.down { color: var(--down); }
+    .card-change.flat { color: var(--flat); }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 26px;
+    }
+
+    .sparkline svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .sparkline path {
+      fill: none;
+      stroke-width: 1.4;
+    }
+
+    .sparkline path.up {
+      stroke: var(--up);
+    }
+
+    .sparkline path.down {
+      stroke: var(--down);
+    }
+
+    .sparkline path.flat {
+      stroke: var(--flat);
+    }
+
+    .sparkline-area {
+      fill: rgba(148,163,184,0.08);
+    }
+
+    /* Heartbeat strip */
+    #heartbeat-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 2px 0;
+      scrollbar-width: thin;
+    }
+
+    .heartbeat-pill {
+      flex: 0 0 auto;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(249,115,22,0.7);
+      font-size: 0.7rem;
+      color: #fed7aa;
+      background: radial-gradient(circle at top, rgba(249,115,22,0.2), transparent 60%);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 12px rgba(249,115,22,0.6);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .heartbeat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #f97316;
+      box-shadow: 0 0 10px rgba(249,115,22,0.9);
+    }
+
+    /* Error bar */
+    #errbar {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(127,29,29,0.95);
+      color: #fee2e2;
+      font-size: 0.8rem;
+      border: 1px solid rgba(248,113,113,0.9);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.8);
+      z-index: 40;
+    }
+
+    /* Detail modal */
+    #detail-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    #detail-panel {
+      width: min(420px, 92vw);
+      background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 14px 16px 16px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+    }
+
+    #detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    #detail-symbol {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    #detail-name {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #detail-close {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #detail-body {
+      font-size: 0.8rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      margin-bottom: 8px;
+    }
+
+    #detail-body div span.label {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    #detail-body div span.value {
+      font-variant-numeric: tabular-nums;
+    }
+
+    #detail-mode {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Toggle row */
+    .toggle-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Market Command Center</h1>
+  <div class="header-meta">
+    <div class="badge">
+      <span id="ws-dot" class="badge-dot offline"></span>
+      <span id="ws-label">WebSocket: Idle</span>
+    </div>
+    <div class="badge">
+      <span>Last Update:</span>
+      <span id="last-updated">—</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Heatmap + Tickers -->
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Sector Heatmap</div>
+        <div class="panel-sub">Click a tile to jump to that ticker</div>
+      </div>
+      <div class="toggle-row">
+        <label>
+          <input type="checkbox" id="prepost-toggle" />
+          <span>Pre / Post-Market Mode</span>
+        </label>
+      </div>
+    </div>
+    <div id="heatmap"></div>
+    <div class="panel-header" style="margin-top:10px;">
+      <div class="panel-title">Watchlist & Index Grid</div>
+      <div class="panel-sub">Click any card for full quote</div>
+    </div>
+    <div id="ticker-grid"></div>
+  </div>
+
+  <!-- RIGHT: Heartbeat + Detail -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">High-Volume Heartbeat</div>
+      <div class="panel-sub">> 50M shares traded today</div>
+    </div>
+    <div id="heartbeat-strip"></div>
+
+    <div class="panel-header" style="margin-top:14px;">
+      <div class="panel-title">Quote Detail</div>
+      <div class="panel-sub">Click a card to inspect</div>
+    </div>
+    <div id="detail-placeholder" style="font-size:0.8rem;color:var(--muted);padding:4px 2px;">
+      No symbol selected yet. Click any ticker card to open a full quote panel.
+    </div>
+  </div>
+</div>
+
+<div id="detail-backdrop">
+  <div id="detail-panel">
+    <div id="detail-header">
+      <div>
+        <div id="detail-symbol"></div>
+        <div id="detail-name"></div>
+      </div>
+      <button id="detail-close">Close ✕</button>
+    </div>
+    <div id="detail-body"></div>
+    <div id="detail-mode"></div>
+  </div>
+</div>
+
+<div id="errbar"></div>
+
+<script>
+/* ========= CONFIG & DATA ========= */
+
+const EXCHANGES = window.EXCHANGES || {
+  INDEX: [
+    { sym: 'ES=F', name: 'S&P 500 Futures', sector: 'Index' },
+    { sym: 'NQ=F', name: 'Nasdaq 100 Futures', sector: 'Index' },
+    { sym: 'YM=F', name: 'Dow Futures', sector: 'Index' },
+    { sym: 'RTY=F', name: 'Russell 2000 Futures', sector: 'Index' }
+  ],
+  EQUITY: [
+    { sym: 'AAPL', name: 'Apple', sector: 'Technology' },
+    { sym: 'MSFT', name: 'Microsoft', sector: 'Technology' },
+    { sym: 'NVDA', name: 'NVIDIA', sector: 'Technology' },
+    { sym: 'AMZN', name: 'Amazon', sector: 'Consumer Discretionary' },
+    { sym: 'META', name: 'Meta Platforms', sector: 'Communication Services' },
+    { sym: 'TSLA', name: 'Tesla', sector: 'Consumer Discretionary' }
+  ],
+  ETF: [
+    { sym: 'SPY', name: 'SPDR S&P 500', sector: 'ETF' },
+    { sym: 'QQQ', name: 'Invesco QQQ', sector: 'ETF' },
+    { sym: 'IWM', name: 'iShares Russell 2000', sector: 'ETF' },
+    { sym: 'TLT', name: 'iShares 20+ Yr Treasury', sector: 'Fixed Income' }
+  ]
+};
+
+const WL_KEY = 'mktcmd_watchlist';
+let priceCache = {};
+let refreshTimer;
+const REFRESH_EVERY = 60;
+const STALE_AFTER_MS = 120000;
+const HIGH_VOL_THRESHOLD = 50_000_000;
+
+// keys
+let FINNHUB_KEY = localStorage.getItem('fh_key') || '';
+let TWELVE_KEY  = localStorage.getItem('td_key') || '528388fd472444618660d5286cd89e04';
+
+// websocket
+let ws = null;
+let wsActive = false;
+let wsSubscribed = new Set();
+
+// pre/post toggle
+let prePostMode = false;
+
+/* ========= UTILITIES ========= */
+
+function sanitizeId(sym){ return sym.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function wlLoad(){
+  try { return JSON.parse(localStorage.getItem(WL_KEY)) || []; }
+  catch { return []; }
+}
+
+function fmt(n, dec=2){
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US',{minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+
+function showError(msg){
+  const bar = document.getElementById('errbar');
+  bar.textContent = msg;
+  bar.style.display = 'block';
+  setTimeout(() => { bar.style.display = 'none'; }, 5000);
+}
+
+function setLastUpdated(){
+  const el = document.getElementById('last-updated');
+  el.textContent = new Date().toLocaleTimeString();
+}
+
+/* ========= API MAPPINGS ========= */
+
+const FH_MAP = {
+  'ES=F':'^GSPC','NQ=F':'^IXIC','YM=F':'^DJI','RTY=F':'^RUT',
+  'GC=F':'GLD','SI=F':'SLV','CL=F':'USO','BZ=F':'USO','NG=F':'UNG',
+  'ZB=F':'TLT','6E=F':'FXE','HO=F':'USO','RB=F':'UGA',
+  'CC=F':'NIB','KC=F':'JO','CT=F':'BAL','SB=F':'SGG','DX=F':'UUP'
+};
+
+async function fetchOneFinnhub(displaySym) {
+  if (!FINNHUB_KEY) return null;
+  const fhSym = FH_MAP[displaySym] || displaySym;
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fhSym)}&token=${FINNHUB_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const q = await res.json();
+  if (!q || !q.c) return null;
+
+  const price = q.c;
+  const prev = q.pc || price;
+  const change = price - prev;
+  const pct = prev ? (change / prev) * 100 : 0;
+
+  const prePrice = q.p || null;
+  const preChange = prePrice && q.p_d != null ? q.p_d : null;
+  const prePct = prePrice && q.p_dp != null ? q.p_dp : null;
+
+  return {
+    price,
+    change,
+    pct,
+    high: q.h,
+    low: q.l,
+    vol: q.v || 0,
+    prevClose: prev,
+    prePrice,
+    preChange,
+    prePct,
+    ts: Date.now()
+  };
+}
+
+async function fetchOneTwelve(symbol) {
+  if (!TWELVE_KEY) return null;
+  const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${TWELVE_KEY}`;
+  const res = await fetch(url);
+  const q = await res.json();
+  if (!q || !q.close) return null;
+
+  const price = parseFloat(q.close);
+  const prev = parseFloat(q.previous_close || price);
+  const change = price - prev;
+  const pct = prev ? (change / prev) * 100 : 0;
+
+  return {
+    price,
+    change,
+    pct,
+    high: parseFloat(q.high || price),
+    low: parseFloat(q.low || price),
+    vol: parseFloat(q.volume || 0),
+    prevClose: prev,
+    prePrice: null,
+    preChange: null,
+    prePct: null,
+    ts: Date.now()
+  };
+}
+
+async function fetchLiveQuote(sym) {
+  try {
+    const fh = await fetchOneFinnhub(sym);
+    if (fh) return fh;
+  } catch(e) {
+    console.warn('Finnhub error', sym, e);
+  }
+
+  try {
+    const td = await fetchOneTwelve(sym);
+    if (td) return td;
+  } catch(e) {
+    console.warn('TwelveData error', sym, e);
+  }
+
+  return null;
+}
+
+async function fetchYahoo(symbols) {
+  const out = {};
+  const BURST = 8;
+
+  for (let i = 0; i < symbols.length; i += BURST) {
+    const batch = symbols.slice(i, i + BURST);
+
+    await Promise.all(batch.map(async sym => {
+      try {
+        const d = await fetchLiveQuote(sym);
+        if (d) out[sym] = d;
+      } catch(e) {
+        console.warn('Fetch error', sym, e);
+      }
+    }));
+
+    if (i + BURST < symbols.length) {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+
+  return out;
+}
+
+/* ========= SPARKLINE RENDERING ========= */
+
+const SPARK_POINTS = 40;
+
+function pushHistory(sym, price) {
+  if (!priceCache[sym]) priceCache[sym] = {};
+  if (!priceCache[sym].history) priceCache[sym].history = [];
+  const hist = priceCache[sym].history;
+  hist.push(price);
+  if (hist.length > SPARK_POINTS) hist.shift();
+}
+
+function renderSparkline(sym, data) {
+  const card = document.getElementById('card-' + sanitizeId(sym));
+  if (!card) return;
+  const container = card.querySelector('.sparkline');
+  if (!container) return;
+
+  const hist = (priceCache[sym] && priceCache[sym].history) || [];
+  if (!hist.length) return;
+
+  const w = 100;
+  const h = 26;
+  const min = Math.min(...hist);
+  const max = Math.max(...hist);
+  const span = max - min || 1;
+
+  const pts = hist.map((p, i) => {
+    const x = (i / (hist.length - 1 || 1)) * w;
+    const y = h - ((p - min) / span) * (h - 4) - 2;
+    return { x, y };
+  });
+
+  const d = pts.map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`)).join(' ');
+
+  const dir = data.change > 0 ? 'up' : data.change < 0 ? 'down' : 'flat';
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path class="sparkline-area" d="${d} L${w},${h} L0,${h} Z"></path>
+      <path class="${dir}" d="${d}"></path>
+    </svg>
+  `;
+}
+
+/* ========= CARD & HEATMAP RENDERING ========= */
+
+function buildLayout() {
+  const grid = document.getElementById('ticker-grid');
+  const heat = document.getElementById('heatmap');
+  grid.innerHTML = '';
+  heat.innerHTML = '';
+
+  const all = [];
+  Object.keys(EXCHANGES).forEach(group => {
+    EXCHANGES[group].forEach(t => all.push(t));
+  });
+  wlLoad().forEach(t => all.push(t));
+
+  // dedupe by sym
+  const seen = new Set();
+  const unique = [];
+  for (const t of all) {
+    if (seen.has(t.sym)) continue;
+    seen.add(t.sym);
+    unique.push(t);
+  }
+
+  unique.forEach(t => {
+    const id = sanitizeId(t.sym);
+
+    // card
+    const card = document.createElement('div');
+    card.className = 'ticker-card flat';
+    card.id = 'card-' + id;
+    card.dataset.sym = t.sym;
+    card.dataset.name = t.name || t.sym;
+    card.dataset.sector = t.sector || 'Other';
+
+    card.innerHTML = `
+      <div class="ticker-header">
+        <div>
+          <div class="ticker-symbol">${t.sym}</div>
+          <div class="ticker-name">${t.name || ''}</div>
+        </div>
+        <div class="card-price">$—</div>
+      </div>
+      <div class="card-change flat">—</div>
+      <div class="sparkline"></div>
+      <div class="card-footer">
+        <span class="card-range">H: —  L: —</span>
+        <span class="card-vol">Vol: —</span>
+      </div>
+    `;
+    card.addEventListener('click', () => openDetail(t.sym));
+    grid.appendChild(card);
+
+    // heat tile
+    const tile = document.createElement('div');
+    tile.className = 'heat-tile heat-flat';
+    tile.id = 'heat-' + id;
+    tile.dataset.sym = t.sym;
+    tile.innerHTML = `
+      <div class="sym">${t.sym}</div>
+      <div class="pct">—</div>
+      <div class="sector" style="font-size:0.65rem;color:var(--muted);">${t.sector || ''}</div>
+    `;
+    tile.addEventListener('click', () => {
+      const target = document.getElementById('card-' + id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('pulse');
+        setTimeout(() => target.classList.remove('pulse'), 600);
+      }
+    });
+    heat.appendChild(tile);
+  });
+}
+
+function updateCard(sym, data) {
+  const card = document.getElementById('card-' + sanitizeId(sym));
+  if (!card || !data) return;
+
+  const usePre = prePostMode && data.prePrice != null;
+  const price = usePre ? data.prePrice : data.price;
+  const change = usePre && data.preChange != null ? data.preChange : data.change;
+  const pct = usePre && data.prePct != null ? data.prePct : data.pct;
+
+  const dir = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+  const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
+
+  card.className = 'ticker-card ' + dir;
+
+  // stale check
+  const ts = data.ts || Date.now();
+  if (Date.now() - ts > STALE_AFTER_MS) {
+    card.classList.add('stale');
+  } else {
+    card.classList.remove('stale');
+  }
+
+  // high volume
+  if (data.vol && data.vol >= HIGH_VOL_THRESHOLD) {
+    card.classList.add('high-vol');
+  } else {
+    card.classList.remove('high-vol');
+  }
+
+  card.querySelector('.card-price').textContent = '$' + fmt(price);
+
+  const ch = card.querySelector('.card-change');
+  ch.className = 'card-change ' + dir;
+  ch.textContent = `${arrow} ${fmt(Math.abs(change))} (${fmt(Math.abs(pct))}%)`;
+
+  const range = card.querySelector('.card-range');
+  range.textContent = `H: ${fmt(data.high)}  L: ${fmt(data.low)}`;
+
+  const volEl = card.querySelector('.card-vol');
+  volEl.textContent = data.vol ? `Vol: ${fmt(data.vol,0)}` : 'Vol: —';
+
+  // cache & sparkline
+  if (!priceCache[sym]) priceCache[sym] = {};
+  priceCache[sym] = { ...priceCache[sym], ...data };
+  pushHistory(sym, price);
+  renderSparkline(sym, data);
+
+  updateHeatTile(sym, pct, dir);
+}
+
+function updateHeatTile(sym, pct, dir) {
+  const tile = document.getElementById('heat-' + sanitizeId(sym));
+  if (!tile) return;
+  const pctEl = tile.querySelector('.pct');
+  pctEl.textContent = `${pct == null ? '—' : fmt(pct)}%`;
+
+  tile.classList.remove('heat-up','heat-down','heat-flat');
+  if (pct > 0.15) tile.classList.add('heat-up');
+  else if (pct < -0.15) tile.classList.add('heat-down');
+  else tile.classList.add('heat-flat');
+}
+
+/* ========= HEARTBEAT ========= */
+
+function updateHeartbeat() {
+  const strip = document.getElementById('heartbeat-strip');
+  strip.innerHTML = '';
+
+  const entries = Object.entries(priceCache)
+    .filter(([_, d]) => d && d.vol && d.vol >= HIGH_VOL_THRESHOLD)
+    .sort((a,b) => b[1].vol - a[1].vol)
+    .slice(0, 20);
+
+  entries.forEach(([sym, d]) => {
+    const pill = document.createElement('div');
+    pill.className = 'heartbeat-pill';
+    pill.dataset.sym = sym;
+    pill.innerHTML = `
+      <span class="heartbeat-dot"></span>
+      <span>${sym}</span>
+      <span>${fmt(d.vol,0)}</span>
+    `;
+    pill.addEventListener('click', () => openDetail(sym));
+    strip.appendChild(pill);
+  });
+}
+
+/* ========= DETAIL PANEL ========= */
+
+function openDetail(sym) {
+  const data = priceCache[sym];
+  const card = document.getElementById('card-' + sanitizeId(sym));
+  const name = card ? (card.dataset.name || sym) : sym;
+
+  const placeholder = document.getElementById('detail-placeholder');
+  placeholder.style.display = 'none';
+
+  const backdrop = document.getElementById('detail-backdrop');
+  const symEl = document.getElementById('detail-symbol');
+  const nameEl = document.getElementById('detail-name');
+  const body = document.getElementById('detail-body');
+  const modeEl = document.getElementById('detail-mode');
+
+  symEl.textContent = sym;
+  nameEl.textContent = name;
+
+  if (!data) {
+    body.innerHTML = `<div style="grid-column:1/-1;color:var(--muted);">No live data yet for this symbol.</div>`;
+    modeEl.textContent = '';
+  } else {
+    const usePre = prePostMode && data.prePrice != null;
+    const price = usePre ? data.prePrice : data.price;
+    const change = usePre && data.preChange != null ? data.preChange : data.change;
+    const pct = usePre && data.prePct != null ? data.prePct : data.pct;
+
+    body.innerHTML = `
+      <div>
+        <span class="label">Last Price</span>
+        <span class="value">$${fmt(price)}</span>
+      </div>
+      <div>
+        <span class="label">Change</span>
+        <span class="value">${fmt(change)} (${fmt(pct)}%)</span>
+      </div>
+      <div>
+        <span class="label">High</span>
+        <span class="value">$${fmt(data.high)}</span>
+      </div>
+      <div>
+        <span class="label">Low</span>
+        <span class="value">$${fmt(data.low)}</span>
+      </div>
+      <div>
+        <span class="label">Prev Close</span>
+        <span class="value">$${fmt(data.prevClose)}</span>
+      </div>
+      <div>
+        <span class="label">Volume</span>
+        <span class="value">${data.vol ? fmt(data.vol,0) : '—'}</span>
+      </div>
+      <div>
+        <span class="label">Data Age</span>
+        <span class="value">${data.ts ? Math.round((Date.now()-data.ts)/1000) + 's ago' : '—'}</span>
+      </div>
+      <div>
+        <span class="label">Source</span>
+        <span class="value">${data.source || 'Finnhub / TwelveData'}</span>
+      </div>
+    `;
+
+    if (prePostMode) {
+      if (data.prePrice != null) {
+        modeEl.textContent = 'Pre/Post-Market: Using extended-hours quote when available.';
+      } else {
+        modeEl.textContent = 'Pre/Post-Market: No extended-hours quote available; showing regular session price.';
+      }
+    } else {
+      modeEl.textContent = 'Regular session mode.';
+    }
+  }
+
+  backdrop.style.display = 'flex';
+}
+
+document.getElementById('detail-close').addEventListener('click', () => {
+  document.getElementById('detail-backdrop').style.display = 'none';
+});
+document.getElementById('detail-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'detail-backdrop') {
+    document.getElementById('detail-backdrop').style.display = 'none';
+  }
+});
+
+/* ========= WEBSOCKET MODE ========= */
+
+function setWsStatus(active, label) {
+  wsActive = active;
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-label');
+  if (active) {
+    dot.classList.remove('offline');
+    lbl.textContent = label || 'WebSocket: Live';
+  } else {
+    dot.classList.add('offline');
+    lbl.textContent = label || 'WebSocket: Idle';
+  }
+}
+
+function wsSubscribeAll() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const allSyms = [
+    ...Object.values(EXCHANGES).flat().map(t => t.sym),
+    ...wlLoad().map(t => t.sym)
+  ];
+  allSyms.forEach(sym => {
+    if (wsSubscribed.has(sym)) return;
+    const fhSym = FH_MAP[sym] || sym;
+    ws.send(JSON.stringify({ type: 'subscribe', symbol: fhSym }));
+    wsSubscribed.add(sym);
+  });
+}
+
+function initWebSocket() {
+  if (!FINNHUB_KEY) {
+    setWsStatus(false, 'WebSocket: No Finnhub key');
+    return;
+  }
+  try {
+    ws = new WebSocket(`wss://ws.finnhub.io?token=${FINNHUB_KEY}`);
+  } catch (e) {
+    console.warn('WS init error', e);
+    setWsStatus(false, 'WebSocket: Error');
+    return;
+  }
+
+  ws.onopen = () => {
+    setWsStatus(true, 'WebSocket: Connected');
+    wsSubscribed.clear();
+    wsSubscribeAll();
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'trade' && Array.isArray(msg.data)) {
+        msg.data.forEach(t => {
+          const fhSym = t.s;
+          const displaySym = Object.keys(FH_MAP).find(k => FH_MAP[k] === fhSym) || fhSym;
+          const sym = displaySym;
+          const price = t.p;
+          if (!price) return;
+
+          const existing = priceCache[sym] || {};
+          const prev = existing.prevClose || price;
+          const change = price - prev;
+          const pct = prev ? (change / prev) * 100 : 0;
+
+          const merged = {
+            price,
+            change,
+            pct,
+            high: existing.high || price,
+            low: existing.low || price,
+            vol: existing.vol || 0,
+            prevClose: prev,
+            prePrice: existing.prePrice || null,
+            preChange: existing.preChange || null,
+            prePct: existing.prePct || null,
+            ts: Date.now(),
+            source: 'Finnhub WS'
+          };
+          priceCache[sym] = { ...(priceCache[sym] || {}), ...merged };
+          updateCard(sym, merged);
+        });
+        updateHeartbeat();
+      }
+    } catch (e) {
+      console.warn('WS message error', e);
+    }
+  };
+
+  ws.onerror = () => {
+    setWsStatus(false, 'WebSocket: Error');
+  };
+
+  ws.onclose = () => {
+    setWsStatus(false, 'WebSocket: Closed');
+    setTimeout(() => {
+      initWebSocket();
+    }, 10000);
+  };
+}
+
+/* ========= FETCH LOOP ========= */
+
+async function fetchAll() {
+  const allSyms = [
+    ...Object.values(EXCHANGES).flat().map(t => t.sym),
+    ...wlLoad().map(t => t.sym)
+  ];
+
+  const combined = await fetchYahoo(allSyms);
+  if (!Object.keys(combined).length) {
+    showError('Live data temporarily unavailable.');
+  }
+
+  allSyms.forEach(sym => {
+    if (combined[sym]) {
+      priceCache[sym] = { ...(priceCache[sym] || {}), ...combined[sym] };
+      updateCard(sym, combined[sym]);
+    }
+  });
+
+  updateHeartbeat();
+  setLastUpdated();
+}
+
+window.fetchAll = fetchAll;
+
+/* ========= PRE/POST TOGGLE ========= */
+
+document.getElementById('prepost-toggle').addEventListener('change', (e) => {
+  prePostMode = e.target.checked;
+  // re-render all cards with current cache
+  Object.entries(priceCache).forEach(([sym, data]) => {
+    updateCard(sym, data);
+  });
+});
+
+/* ========= BOOT ========= */
+
+window.addEventListener('load', () => {
+  localStorage.setItem('td_key', TWELVE_KEY);
+
+  buildLayout();
+  fetchAll();
+  refreshTimer = setInterval(fetchAll, REFRESH_EVERY * 1000);
+
+  initWebSocket();
+});
+</script>
+</body>
+</html>
